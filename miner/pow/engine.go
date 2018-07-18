@@ -80,9 +80,9 @@ func GetDifficult(time uint64, parentHeader *types.BlockHeader) *big.Int {
 	var y = new(big.Int).Set(parentDifficult)
 	y.Div(parentDifficult, big2048)
 
-	var result = big.NewInt(0)
-	result.Mul(x, y)
-	result.Add(parentDifficult, result)
+	var result = big.NewInt(200000)
+	// result.Mul(x, y)
+	// result.Add(parentDifficult, result)
 
 	return result
 }

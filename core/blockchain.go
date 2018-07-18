@@ -289,13 +289,12 @@ func (bc *Blockchain) doWriteBlock(block *types.Block) error {
 	}
 	copy(currentBlock.Transactions, block.Transactions)
 
-	var previousTd *big.Int
-	if previousTd, err = bc.bcStore.GetBlockTotalDifficulty(block.Header.PreviousBlockHash); err != nil {
+	var td *big.Int
+	if td, err = bc.bcStore.GetBlockTotalDifficulty(block.Header.PreviousBlockHash); err != nil {
 		return err
 	}
 
-	currentTd := new(big.Int).Add(previousTd, block.Header.Difficulty)
-	blockIndex := NewBlockIndex(blockStatedb, currentBlock, currentTd)
+	blockIndex := NewBlockIndex(blockStatedb, currentBlock, td.Add(td, block.Header.Difficulty))
 	isHead := bc.blockLeaves.IsBestBlockIndex(blockIndex)
 
 	/////////////////////////////////////////////////////////////////
@@ -320,7 +319,7 @@ func (bc *Blockchain) doWriteBlock(block *types.Block) error {
 		return err
 	}
 
-	if err = bc.bcStore.PutBlock(block, currentTd, isHead); err != nil {
+	if err = bc.bcStore.PutBlock(block, td, isHead); err != nil {
 		bc.log.Error("Failed to save block into store, %v", err.Error())
 		return err
 	}

@@ -35,42 +35,6 @@ func newTestBlockHeader() *types.BlockHeader {
 	}
 }
 
-func Test_blockchainDatabase_Header_invalid(t *testing.T) {
-	header := newTestBlockHeader()
-	headerHash := header.Hash()
-
-	bcStore, dispose := newTestBlockchainDatabase()
-	defer dispose()
-
-	bcStore.PutBlockHeader(headerHash, header, header.Difficulty, true)
-
-	// Invalid block height
-	hash1, err1 := bcStore.GetBlockHash(10)
-	assert.Equal(t, err1 != nil, true)
-	assert.Equal(t, hash1, common.EmptyHash)
-
-	// Invalid block header hash
-	_, err2 := bcStore.GetBlockHeader(common.StringToHash("heh"))
-	assert.Equal(t, err2 != nil, true)
-
-	// Invalid block header hash
-	_, err3 := bcStore.GetBlockTotalDifficulty(common.StringToHash("heh"))
-	assert.Equal(t, err3 != nil, true)
-
-	// Invalid block hash
-	block2 := &types.Block{
-		HeaderHash:   common.StringToHash("heh"),
-		Header:       header,
-		Transactions: []*types.Transaction{newTestTx(), newTestTx(), newTestTx()},
-	}
-	_, err4 := bcStore.GetBlock(block2.HeaderHash)
-	assert.Equal(t, err4 != nil, true)
-
-	// Invalid block
-	var block1 *types.Block
-	assert.Panic(t, func() { bcStore.PutBlock(block1, header.Difficulty, true) }, "block is nil")
-}
-
 func Test_blockchainDatabase_Header(t *testing.T) {
 	header := newTestBlockHeader()
 	headerHash := header.Hash()
@@ -84,29 +48,9 @@ func Test_blockchainDatabase_Header(t *testing.T) {
 	assert.Equal(t, err, error(nil))
 	assert.Equal(t, hash, headerHash)
 
-	// PutBlockHash test
-	err2 := bcStore.PutBlockHash(10, headerHash)
-	assert.Equal(t, err2, error(nil))
-	hash2, err2 := bcStore.GetBlockHash(10)
-	assert.Equal(t, err2, error(nil))
-	assert.Equal(t, hash2, headerHash)
-
-	// DeleteBlockHash test
-	exist, err3 := bcStore.DeleteBlockHash(10)
-	assert.Equal(t, err3, error(nil))
-	assert.Equal(t, exist, true)
-
-	exist, err4 := bcStore.DeleteBlockHash(10)
-	assert.Equal(t, err4, error(nil))
-	assert.Equal(t, exist, false)
-
 	headHash, err := bcStore.GetHeadBlockHash()
 	assert.Equal(t, err, error(nil))
 	assert.Equal(t, headHash, headerHash)
-
-	// PutHeadBlockHash test
-	err5 := bcStore.PutHeadBlockHash(headerHash)
-	assert.Equal(t, err5, error(nil))
 
 	storedHeader, err := bcStore.GetBlockHeader(headerHash)
 	assert.Equal(t, err, error(nil))
@@ -116,7 +60,7 @@ func Test_blockchainDatabase_Header(t *testing.T) {
 	assert.Equal(t, err, error(nil))
 	assert.Equal(t, td, header.Difficulty)
 
-	exist, err = bcStore.HasBlock(headerHash)
+	exist, err := bcStore.HasBlock(headerHash)
 	assert.Equal(t, exist, true)
 	assert.Equal(t, err, nil)
 
@@ -159,15 +103,6 @@ func Test_blockchainDatabase_Block(t *testing.T) {
 	storedBlock, err := bcStore.GetBlock(block.HeaderHash)
 	assert.Equal(t, err, error(nil))
 	assert.Equal(t, storedBlock, block)
-
-	// GetBlockByHeight test
-	block3, err3 := bcStore.GetBlockByHeight(1)
-	assert.Equal(t, err3, nil)
-	assert.Equal(t, block3, block)
-
-	// DeleteBlock test
-	err4 := bcStore.DeleteBlock(block.HeaderHash)
-	assert.Equal(t, err4, nil)
 }
 
 func Test_blockchainDatabase_Receipt(t *testing.T) {
@@ -207,37 +142,4 @@ func Test_blockchainDatabase_Receipt(t *testing.T) {
 		assert.Equal(t, err, error(nil))
 		assert.Equal(t, receipt.TxHash, txHash)
 	}
-}
-
-func Test_blockchainDatabase_GetTxIndex(t *testing.T) {
-	tx1 := newTestTx()
-	tx2 := newTestTx()
-	tx3 := newTestTx()
-	transactions := []*types.Transaction{tx1, tx2, tx3}
-
-	header := newTestBlockHeader()
-	block := &types.Block{
-		HeaderHash:   header.Hash(),
-		Header:       header,
-		Transactions: transactions,
-	}
-
-	bcStore, dispose := newTestBlockchainDatabase()
-	defer dispose()
-
-	err := bcStore.PutBlock(block, header.Difficulty, true)
-	assert.Equal(t, err, error(nil))
-
-	for i, tx := range transactions {
-		txIdx, err := bcStore.GetTxIndex(tx.Hash)
-		assert.Equal(t, err, error(nil))
-		assert.Equal(t, txIdx != nil, true)
-		assert.Equal(t, txIdx.Index, uint(i))
-		assert.Equal(t, txIdx.BlockHash, block.HeaderHash)
-	}
-
-	// tx that doesn't exist
-	txNoExist := newTestTx()
-	_, err = bcStore.GetTxIndex(txNoExist.Hash)
-	assert.Equal(t, err != nil, true)
 }

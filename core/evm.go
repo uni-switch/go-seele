@@ -102,10 +102,6 @@ func ProcessContract(context *vm.Context, tx *types.Transaction, txIndex int, st
 		return nil, vm.ErrInsufficientBalance
 	}
 
-	// transfer fee to coinbase
-	statedb.SubBalance(tx.Data.From, totalFee)
-	statedb.AddBalance(context.Coinbase, totalFee)
-
 	if err != nil {
 		receipt.Failed = true
 		receipt.Result = []byte(err.Error())
@@ -113,7 +109,7 @@ func ProcessContract(context *vm.Context, tx *types.Transaction, txIndex int, st
 
 	receipt.UsedGas = gas - leftOverGas
 
-	if receipt.PostState, err = statedb.Hash(); err != nil {
+	if receipt.PostState, err = statedb.Commit(nil); err != nil {
 		return nil, err
 	}
 
@@ -121,6 +117,10 @@ func ProcessContract(context *vm.Context, tx *types.Transaction, txIndex int, st
 	if receipt.Logs == nil {
 		receipt.Logs = make([]*types.Log, 0)
 	}
+
+	// transfer fee to coinbase
+	statedb.SubBalance(tx.Data.From, totalFee)
+	statedb.AddBalance(context.Coinbase, totalFee)
 
 	return receipt, nil
 }

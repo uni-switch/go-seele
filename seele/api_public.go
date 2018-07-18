@@ -251,7 +251,7 @@ func (api *PublicSeeleAPI) GetLogs(request *GetLogsRequest, result *[]map[string
 
 	logs := make([]map[string]interface{}, 0)
 	for _, receipt := range receipts {
-		for _, log := range receipt.Logs {
+		for k, log := range receipt.Logs {
 			// Matches contract address
 			if !contractAddress.Equal(log.Address) {
 				continue
@@ -267,6 +267,8 @@ func (api *PublicSeeleAPI) GetLogs(request *GetLogsRequest, result *[]map[string
 			if err != nil {
 				return err
 			}
+			put["txHash"] = receipt.TxHash
+			put["logIndex"] = k
 
 			logs = append(logs, put)
 		}
