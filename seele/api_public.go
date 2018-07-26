@@ -20,12 +20,14 @@ import (
 
 // PublicSeeleAPI provides an API to access full node-related information.
 type PublicSeeleAPI struct {
-	s *SeeleService
+	s         *SeeleService
+	nonceLock *AddrLocker
 }
 
 // NewPublicSeeleAPI creates a new PublicSeeleAPI object for rpc service.
 func NewPublicSeeleAPI(s *SeeleService) *PublicSeeleAPI {
-	return &PublicSeeleAPI{s}
+	nonceLock := new(AddrLocker)
+	return &PublicSeeleAPI{s, nonceLock}
 }
 
 // MinerInfo miner simple info
@@ -146,6 +148,18 @@ func (api *PublicSeeleAPI) GetBalance(account *common.Address, result *big.Int) 
 func (api *PublicSeeleAPI) AddTx(tx *types.Transaction, result *bool) error {
 	shard := tx.Data.From.Shard()
 	var err error
+
+	if tx.Data.AccountNonce == 0 {
+		api.nonceLock.LockAddr(tx.Data.From)
+		defer api.nonceLock.UnlockAddr(tx.Data.From)
+
+		state, err := api.s.chain.GetCurrentState()
+		if err != nil {
+			return err
+		}
+		tx.Data.AccountNonce = state.GetNonce(tx.Data.From) + 1
+	}
+
 	if shard != common.LocalShardNumber {
 		if err = tx.ValidateWithoutState(true, false); err == nil {
 			api.s.seeleProtocol.SendDifferentShardTx(tx, shard)
