@@ -149,6 +149,7 @@ func (api *PublicSeeleAPI) AddTx(tx *types.Transaction, result *bool) error {
 	shard := tx.Data.From.Shard()
 	var err error
 
+	/*
 	if tx.Data.AccountNonce == 0 {
 		api.nonceLock.LockAddr(tx.Data.From)
 		defer api.nonceLock.UnlockAddr(tx.Data.From)
@@ -159,6 +160,7 @@ func (api *PublicSeeleAPI) AddTx(tx *types.Transaction, result *bool) error {
 		}
 		tx.Data.AccountNonce = state.GetNonce(tx.Data.From) + 1
 	}
+	*/
 
 	if shard != common.LocalShardNumber {
 		if err = tx.ValidateWithoutState(true, false); err == nil {
